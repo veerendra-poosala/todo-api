@@ -73,10 +73,14 @@ class TodoRequest(BaseModel):
 # Register a GET endpoint at the root URL "/".
 # Return HTTP 200 OK when the request succeeds.
 @router.get("/", status_code=status.HTTP_200_OK)
-def read_all(db: db_dependency):
-
+def read_all(user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
     # Query the Todos table and return all matching database records.
-    return db.query(Todos).all()
+    return db.query(Todos).filter(Todos.owner_id == user.id).all()  # Filter todos by the authenticated user's ID
 
 
 # Register a POST endpoint at "/todo".
@@ -111,11 +115,16 @@ def create_todo(user: user_dependency, db: db_dependency, todo: TodoRequest):
 # Register a GET endpoint that accepts a todo ID in the URL.
 # Example: GET /todo/5
 @router.get("/todo/{todo_id}", status_code=status.HTTP_200_OK)
-def read_todo(todo_id: int, db: db_dependency):
+def read_todo(todo_id: int,user: user_dependency, db: db_dependency):
 
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
     # Search for the first todo whose ID matches todo_id.
     # first() returns the matching object or None if no record exists.
-    todo = db.query(Todos).filter(Todos.id == todo_id).first()
+    todo = db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).first()  # Filter by the authenticated user's ID
 
     # Check whether the requested todo was found.
     if not todo:
@@ -133,10 +142,14 @@ def read_todo(todo_id: int, db: db_dependency):
 # Register a PUT endpoint to update an existing todo.
 # Example: PUT /todo/5
 @router.put("/todo/{todo_id}", status_code=status.HTTP_200_OK)
-def update_todo(todo_id: int, todo: TodoRequest, db: db_dependency):
-
+def update_todo(todo_id: int, todo: TodoRequest, user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
     # Find the existing database record using its ID.
-    db_todo = db.query(Todos).filter(Todos.id == todo_id).first()
+    db_todo = db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).first()
 
     # If the record does not exist, return HTTP 404.
     if not db_todo:
@@ -166,10 +179,14 @@ def update_todo(todo_id: int, todo: TodoRequest, db: db_dependency):
 # Example: DELETE /todo/5
 # Return HTTP 204 No Content when deletion succeeds.
 @router.delete("/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_todo(todo_id: int, db: db_dependency):
-
+def delete_todo(todo_id: int, user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
     # Search for the todo record that should be deleted.
-    db_todo = db.query(Todos).filter(Todos.id == todo_id).first()
+    db_todo = db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).first()
 
     # If no matching record exists, return HTTP 404.
     if not db_todo:
