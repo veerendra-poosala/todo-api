@@ -5,17 +5,19 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
-
 from models import Users
 from database import SessionLocal
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"]
+)
 
 SECRET_KEY = '02c11fa7ef83793eab5b239effb1eb01d6286207c569dbf124e5fca8f7449839'
 ALGORITHM = "HS256"
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
 class CreateUserRequest(BaseModel):
     username: str
     email: str
@@ -72,7 +74,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)], db: db
     return user
 
 
-@router.post("/auth", status_code=status.HTTP_201_CREATED)
+@router.post("/user", status_code=status.HTTP_201_CREATED)
 async def create_user(db: db_dependency, request: CreateUserRequest):
     
     # Check if the username or email already exists
