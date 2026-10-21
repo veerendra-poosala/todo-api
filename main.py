@@ -7,7 +7,7 @@ import models
 
 # Import the database engine and session factory from database.py.
 from database import engine
-from routers import auth , todos  # Import the auth and todos routers for their respective endpoints.
+from routers import auth , todos, admin # Import the auth and todos routers for their respective endpoints.
 
 
 # Create the FastAPI application instance.
@@ -20,5 +20,5 @@ models.Base.metadata.create_all(bind=engine)
 
 app.include_router(auth.router)  # Include the auth router for authentication endpoints.
 app.include_router(todos.router)  # Include the todos router for todo endpoints.
-
+app.include_router(admin.router)  # Include the admin router for admin endpoints.
 
