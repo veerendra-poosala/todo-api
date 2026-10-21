@@ -5,6 +5,7 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
+
 from models import Users
 from database import SessionLocal
 
@@ -14,7 +15,7 @@ SECRET_KEY = '02c11fa7ef83793eab5b239effb1eb01d6286207c569dbf124e5fca8f7449839'
 ALGORITHM = "HS256"
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token")
 class CreateUserRequest(BaseModel):
     username: str
     email: str
@@ -49,6 +50,26 @@ def create_access_token(username:str, user_id:int, expires_delta: timedelta):
     expires = datetime.now(timezone.utc) + expires_delta
     encode.update({"exp": expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)], db: db_dependency):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        user_id: int = payload.get("user_id")
+        if username is None or user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user = db.query(Users).filter(Users.username == username).first()
+    if user is None:
+        raise credentials_exception
+    return user
 
 
 @router.post("/auth", status_code=status.HTTP_201_CREATED)
