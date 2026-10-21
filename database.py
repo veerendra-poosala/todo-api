@@ -11,8 +11,8 @@ from sqlalchemy.ext.declarative import declarative_base
 
 # Define the database connection URL.
 # sqlite:/// means we are using a SQLite database file.
-# ./todos.db means the database file is stored in the current working directory.
-SQLALCHEMY_DATABASE_URL = 'sqlite:///./todos.db'
+# ./todosapp.db means the database file is stored in the current working directory.
+SQLALCHEMY_DATABASE_URL = 'sqlite:///./todosapp.db'
 
 
 # Create the SQLAlchemy engine, which manages database connectivity.
