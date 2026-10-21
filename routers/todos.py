@@ -25,6 +25,7 @@ from models import Todos
 from database import engine, SessionLocal
 from routers import auth  # Import the auth router for authentication endpoints.
 
+from .auth import get_current_user  # Import the get_current_user function for user authentication.
 
 # Create the FastAPI application instance.
 router = APIRouter()
@@ -51,7 +52,7 @@ def get_db():
 # Session specifies the expected type of the database session.
 # Depends(get_db) tells FastAPI to call get_db and inject its yielded session.
 db_dependency = Annotated[Session, Depends(get_db)]
-
+user_dependency = Annotated[dict, Depends(get_current_user)]  # Dependency for authenticated user
 
 # Define the expected structure and validation rules for todo request data.
 class TodoRequest(BaseModel):
@@ -81,12 +82,17 @@ def read_all(db: db_dependency):
 # Register a POST endpoint at "/todo".
 # Return HTTP 201 Created when a todo is successfully created.
 @router.post("/todo", status_code=status.HTTP_201_CREATED)
-def create_todo(db: db_dependency, todo: TodoRequest):
+def create_todo(user: user_dependency, db: db_dependency, todo: TodoRequest):
 
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
     # Convert the validated Pydantic request data into a SQLAlchemy model.
     # model_dump() returns the request fields as a Python dictionary.
     # ** unpacks the dictionary into keyword arguments for the model constructor.
-    db_todo = models.Todos(**todo.model_dump())
+    db_todo = models.Todos(**todo.model_dump(), owner_id=user.id)  # Set the owner_id to the authenticated user's ID
 
     # Add the new todo object to the database session.
     db.add(db_todo)
