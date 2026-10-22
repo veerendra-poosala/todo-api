@@ -12,7 +12,7 @@ from sqlalchemy.ext.declarative import declarative_base
 # Define the database connection URL.
 # sqlite:/// means we are using a SQLite database file.
 # ./todosapp.db means the database file is stored in the current working directory.
-SQLALCHEMY_DATABASE_URL = 'sqlite:///./todosapp.db'
+SQLALCHEMY_DATABASE_URL = 'mysql+pymysql://root:root@localhost:3306/todoapplication'  # Update this URL to match your database configuration
 
 
 # Create the SQLAlchemy engine, which manages database connectivity.
@@ -21,8 +21,7 @@ SQLALCHEMY_DATABASE_URL = 'sqlite:///./todosapp.db'
 # check_same_thread=False allows SQLite connections to be used across different threads.
 # This setting is commonly used with FastAPI and SQLite.
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={'check_same_thread': False}
+    SQLALCHEMY_DATABASE_URL
 )
 
 
