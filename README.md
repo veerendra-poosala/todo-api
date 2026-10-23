@@ -124,7 +124,7 @@ The same API is implemented on several branches so you can compare them:
 | `main` / `pytest` | **MySQL** | The reference implementation (this README) |
 | `sqlite` | **SQLite** | No server needed; file-based DB; batch-mode migrations |
 | `postgresql` | **PostgreSQL** | `psycopg2` driver; Postgres container in Docker |
-| `mongodb` | **MongoDB** | No SQLAlchemy/Alembic; async **Beanie** ODM on **Motor** |
+| `mongodb` | **MongoDB** | No SQLAlchemy/Alembic; async **Beanie** ODM on **PyMongo async** |
 
 ```bash
 git checkout postgresql   # switch to another implementation
@@ -159,7 +159,7 @@ git checkout postgresql   # switch to another implementation
 | SQLite | built into Python (`sqlite3`) | `sqlite:///` |
 | MySQL | `PyMySQL` (+ `cryptography`) | `mysql+pymysql://` |
 | PostgreSQL | `psycopg2-binary` (or `psycopg[binary]` v3) | `postgresql+psycopg2://` |
-| MongoDB | `motor` + `beanie` (no SQLAlchemy) | `mongodb://` |
+| MongoDB | `pymongo` (async API) + `beanie` (no SQLAlchemy) | `mongodb://` |
 
 ---
 
@@ -437,7 +437,7 @@ MongoDB is a **document database**: it stores JSON-like documents and has no fix
 | SQL version | MongoDB version |
 |---|---|
 | SQLAlchemy models | **Beanie** `Document` classes (Pydantic-based ODM) |
-| `PyMySQL` / `psycopg2` driver | **Motor** (async MongoDB driver) |
+| `PyMySQL` / `psycopg2` driver | **PyMongo** `AsyncMongoClient` (async driver; replaces the deprecated Motor) |
 | `Session` per request via `get_db` | `init_beanie()` once at startup (FastAPI `lifespan`) |
 | Integer ids | `ObjectId` (`PydanticObjectId`) |
 | Alembic migrations | None for structure. Data changes are done with scripts |
@@ -452,7 +452,7 @@ class Todo(Document):
 
 @asynccontextmanager
 async def lifespan(app):
-    client = AsyncIOMotorClient(settings.MONGODB_URL)
+    client = AsyncMongoClient(settings.MONGODB_URL)
     await init_beanie(database=client[settings.MONGODB_DB], document_models=[User, Todo])
     yield
 ```
@@ -734,10 +734,10 @@ On every push: install requirements → run `pytest` → build the Docker image 
 | | `def` endpoint | `async def` endpoint |
 |---|---|---|
 | Runs in | A thread pool | The event loop |
-| Use when | Calling **blocking** libraries (SQLAlchemy sync sessions, `requests`) | Every I/O call is awaitable (`httpx.AsyncClient`, Motor, async SQLAlchemy) |
+| Use when | Calling **blocking** libraries (SQLAlchemy sync sessions, `requests`) | Every I/O call is awaitable (`httpx.AsyncClient`, PyMongo async, async SQLAlchemy) |
 | Danger | — | A blocking call inside `async def` freezes **every** request |
 
-The SQL branches use **sync** SQLAlchemy, so their routes are plain `def`. The `mongodb` branch uses Motor, which is async, so its routes are `async def`.
+The SQL branches use **sync** SQLAlchemy, so their routes are plain `def`. The `mongodb` branch uses PyMongo's async client, so its routes are `async def`.
 
 ---
 
