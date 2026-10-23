@@ -1,3 +1,4 @@
+from beanie import PydanticObjectId
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.constants import PASSWORD_MIN_LENGTH, PHONE_NUMBER_MAX_LENGTH, PHONE_NUMBER_MIN_LENGTH
@@ -7,7 +8,7 @@ class UserResponse(BaseModel):
     """Public view of a user — deliberately excludes hashed_password."""
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: PydanticObjectId
     username: str
     email: str
     first_name: str

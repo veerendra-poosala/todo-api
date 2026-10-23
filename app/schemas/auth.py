@@ -1,3 +1,4 @@
+from beanie import PydanticObjectId
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core.constants import PASSWORD_MIN_LENGTH, ROLE_USER
@@ -14,7 +15,7 @@ class CreateUserRequest(BaseModel):
 
 class CreateUserResponse(BaseModel):
     message: str
-    user_id: int
+    user_id: PydanticObjectId
 
 
 class Token(BaseModel):

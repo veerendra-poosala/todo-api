@@ -4,6 +4,78 @@ A small but complete REST API built with **FastAPI**, **SQLAlchemy**, **Alembic*
 
 It is a learning and interview reference. Every section explains *what* a piece does and *why* it is used, so a developer new to FastAPI can read the code and understand the reasoning behind it.
 
+> ### 📦 This branch: **MongoDB**
+> Same API and URLs as `main`, but stored in **MongoDB** using **Beanie** (an async ODM built on Pydantic) and **PyMongo's async client**. SQLAlchemy, Alembic and SQL drivers are removed. The sections below on SQLAlchemy and Alembic describe the SQL branches. This box covers what's different here.
+
+## MongoDB branch guide
+
+### What changed vs `main`, and why
+
+| Area | SQL branches | This branch | Why |
+|---|---|---|---|
+| Library | SQLAlchemy (ORM) | **Beanie** (ODM) + **PyMongo async** | SQLAlchemy only speaks SQL. Beanie documents *are* Pydantic models |
+| Models | `class Users(Base)` with `Column(...)` | `class Users(Document)` with type hints | One class both validates and stores data |
+| Connection | `engine` + `SessionLocal` + `get_db` per request | One `AsyncMongoClient` created in the FastAPI **lifespan** | Mongo clients are thread-safe pools meant to be shared |
+| IDs | Auto-increment integers | `ObjectId` → 24-char hex strings in JSON | MongoDB's default `_id` type |
+| Relations | `ForeignKey("users.id")` | `owner_id: PydanticObjectId` (indexed) | No foreign keys. The app keeps references consistent |
+| Uniqueness | `unique=True` column | `Indexed(unique=True)` → `DuplicateKeyError` → 400 | The database enforces it, even when two requests race |
+| Schema changes | Alembic migrations | **None for structure**. Data changes use scripts | Collections are schemaless. New optional fields just appear |
+| Routes | `def` (sync SQLAlchemy) | `async def` + `await` | Every DB call is awaitable, so blocking threads aren't needed |
+| Tests | SQLite test DB + `TestClient` | Real MongoDB test DB + `httpx.AsyncClient` + `pytest-asyncio` | No reliable in-memory MongoDB fake exists for Beanie 2 |
+
+> **Why not Motor?** Motor was the classic async MongoDB driver, but MongoDB deprecated it in favour of PyMongo's native async API (`AsyncMongoClient`). Beanie 2 uses PyMongo async.
+
+### Key files
+
+```
+app/db/models.py   # Users / Todos as Beanie Documents (+ indexes)
+app/db/mongo.py    # init_db(): AsyncMongoClient + init_beanie()
+app/main.py        # lifespan: connect on startup, close on shutdown
+```
+
+```python
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    client = await init_db(settings.MONGODB_URL, settings.MONGODB_DB)   # startup
+    yield
+    await client.close()                                                # shutdown
+```
+
+### Querying with Beanie
+
+```python
+await Todos(**data, owner_id=user.id).insert()                          # INSERT
+await Todos.find(Todos.owner_id == user.id).to_list()                   # SELECT ... WHERE
+await Todos.find_one(Todos.id == todo_id, Todos.owner_id == user.id)    # AND conditions
+todo.title = "New"; await todo.save()                                   # UPDATE
+await todo.delete()                                                     # DELETE
+```
+
+### Quick start
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env                 # set SECRET_KEY; MONGODB_URL defaults to localhost
+docker compose up -d mongo           # or use a local MongoDB / MongoDB Atlas
+uvicorn app.main:app --reload        # → http://127.0.0.1:8000/docs
+```
+
+Everything in Docker: `docker compose up --build`.
+
+### Tests
+
+```bash
+docker compose up -d mongo           # tests need a running MongoDB
+pytest                               # uses the separate database "todoapp_test", dropped after each test
+```
+
+If MongoDB isn't reachable, DB tests are **skipped** with a clear message instead of failing. Async tests run via `pytest-asyncio` (`asyncio_mode = auto` in `pytest.ini`), and `httpx.AsyncClient(transport=ASGITransport(app))` calls the app on the same event loop as Beanie.
+
+### Changing data shape without Alembic
+
+- **Adding an optional field:** give it a default in the model (`phone_number: str | None = None`). Old documents still load.
+- **Renaming or transforming fields:** write a one-off script, for example `await Users.find_all().update({"$rename": {"phone": "phone_number"}})`, and keep it in version control. Tools such as Beanie's migrations or `mongock` can track which scripts have run.
+
 ---
 
 ## Table of contents

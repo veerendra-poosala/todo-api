@@ -20,5 +20,5 @@ USER appuser
 
 EXPOSE 8000
 
-# Migrate the schema, then start the server
-CMD ["sh", "-c", "python -m scripts.migrate && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Start the server (Beanie connects and creates indexes on startup; no migrations needed)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

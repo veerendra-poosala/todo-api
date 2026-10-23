@@ -1,31 +1,40 @@
-"""SQLAlchemy ORM models — each class maps to one database table."""
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+"""Beanie documents — each class maps to one MongoDB collection.
+
+Documents are Pydantic models, so the same type hints that validate API input
+also describe what is stored. MongoDB adds the `_id` (ObjectId) automatically.
+"""
+from typing import Annotated
+
+from beanie import Document, Indexed, PydanticObjectId
 
 from app.core.constants import ROLE_USER
-from app.db.database import Base
 
 
-class Users(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True)
-    username = Column(String(100), unique=True)
-    first_name = Column(String(100))
-    last_name = Column(String(100))
+class Users(Document):
+    username: Annotated[str, Indexed(unique=True)]
+    email: Annotated[str, Indexed(unique=True)]
+    first_name: str
+    last_name: str
     # Only the bcrypt hash is stored, never the plain password.
-    hashed_password = Column(String(255))
-    is_active = Column(Boolean, default=True)
-    role = Column(String(50), default=ROLE_USER)
-    phone_number = Column(String(20), nullable=True)
+    hashed_password: str
+    is_active: bool = True
+    role: str = ROLE_USER
+    phone_number: str | None = None
+
+    class Settings:
+        name = "users"
 
 
-class Todos(Base):
-    __tablename__ = "todos"
+class Todos(Document):
+    title: str
+    description: str
+    priority: int
+    complete: bool = False
+    # A reference by id: MongoDB has no foreign keys, so the app keeps this consistent.
+    owner_id: Annotated[PydanticObjectId, Indexed()]
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(200))
-    description = Column(String(1000))
-    priority = Column(Integer)
-    complete = Column(Boolean, default=False)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    class Settings:
+        name = "todos"
+
+
+DOCUMENT_MODELS = [Users, Todos]

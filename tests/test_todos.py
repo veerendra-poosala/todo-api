@@ -1,113 +1,108 @@
-
+from beanie import PydanticObjectId
 from fastapi import status
 
 from app.core.constants import TODO_NOT_FOUND
 from app.db.models import Todos
 
-from .utils import client, TestingSessionLocal, TEST_USER_ID
+MISSING_ID = str(PydanticObjectId())  # valid ObjectId that doesn't exist
 
 
 def todo_to_dict(todo):
     return {
-        "id": todo.id,
+        "id": str(todo.id),
         "title": todo.title,
         "description": todo.description,
         "priority": todo.priority,
         "complete": todo.complete,
-        "owner_id": todo.owner_id,
+        "owner_id": str(todo.owner_id),
     }
 
 
-def test_read_all_authenticated(test_todo):
-    response = client.get("/todos")
+async def test_read_all_authenticated(client, test_todo):
+    response = await client.get("/todos")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == [todo_to_dict(test_todo)]
 
 
-def test_read_one_authenticated(test_todo):
-    response = client.get(f"/todos/{test_todo.id}")
+async def test_read_one_authenticated(client, test_todo):
+    response = await client.get(f"/todos/{test_todo.id}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == todo_to_dict(test_todo)
 
 
-def test_read_one_not_found():
-    response = client.get("/todos/999")
+async def test_read_one_not_found(client, test_user):
+    response = await client.get(f"/todos/{MISSING_ID}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json() == {"detail": TODO_NOT_FOUND.format(todo_id=999)}
+    assert response.json() == {"detail": TODO_NOT_FOUND.format(todo_id=MISSING_ID)}
 
 
-def test_create_todo():
+async def test_read_one_malformed_id(client, test_user):
+    response = await client.get("/todos/not-an-object-id")
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+async def test_create_todo(client, test_user):
     new_todo = {
         "title": "New Test Todo",
         "description": "This is a new test todo",
         "priority": 2,
         "complete": False
     }
-    response = client.post("/todos", json=new_todo)
+    response = await client.post("/todos", json=new_todo)
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert data["title"] == new_todo["title"]
-    assert data["description"] == new_todo["description"]
-    assert data["priority"] == new_todo["priority"]
-    assert data["complete"] == new_todo["complete"]
-    assert data["owner_id"] == TEST_USER_ID
+    assert data["owner_id"] == str(test_user.id)
 
-    db = TestingSessionLocal()
-    model_todo = db.query(Todos).filter(Todos.id == data["id"]).first()
-    db.close()
-    assert model_todo is not None
+    stored = await Todos.get(PydanticObjectId(data["id"]))
+    assert stored is not None
+    assert stored.description == new_todo["description"]
 
 
-def test_create_todo_invalid_payload():
+async def test_create_todo_invalid_payload(client, test_user):
     invalid_todo = {
         "title": "No",  # too short (min 3)
         "description": "Valid description",
         "priority": 5,  # out of range (1-3)
     }
-    response = client.post("/todos", json=invalid_todo)
+    response = await client.post("/todos", json=invalid_todo)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_update_todo(test_todo):
+async def test_update_todo(client, test_todo):
     updated_todo = {
         "title": "Updated Test Todo",
         "description": "This is an updated test todo",
         "priority": 3,
         "complete": True
     }
-    response = client.put(f"/todos/{test_todo.id}", json=updated_todo)
+    response = await client.put(f"/todos/{test_todo.id}", json=updated_todo)
     assert response.status_code == status.HTTP_200_OK
 
-    db = TestingSessionLocal()
-    model_todo = db.query(Todos).filter(Todos.id == test_todo.id).first()
-    db.close()
-    assert model_todo.title == updated_todo["title"]
-    assert model_todo.description == updated_todo["description"]
-    assert model_todo.priority == updated_todo["priority"]
-    assert model_todo.complete == updated_todo["complete"]
+    stored = await Todos.get(test_todo.id)
+    assert stored.title == updated_todo["title"]
+    assert stored.description == updated_todo["description"]
+    assert stored.priority == updated_todo["priority"]
+    assert stored.complete == updated_todo["complete"]
 
 
-def test_update_todo_not_found():
+async def test_update_todo_not_found(client, test_user):
     updated_todo = {
         "title": "Updated Test Todo",
         "description": "This is an updated test todo",
         "priority": 3,
         "complete": True
     }
-    response = client.put("/todos/999", json=updated_todo)
+    response = await client.put(f"/todos/{MISSING_ID}", json=updated_todo)
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_delete_todo(test_todo):
-    response = client.delete(f"/todos/{test_todo.id}")
+async def test_delete_todo(client, test_todo):
+    response = await client.delete(f"/todos/{test_todo.id}")
     assert response.status_code == status.HTTP_204_NO_CONTENT
-
-    db = TestingSessionLocal()
-    model_todo = db.query(Todos).filter(Todos.id == test_todo.id).first()
-    db.close()
-    assert model_todo is None
+    assert await Todos.get(test_todo.id) is None
 
 
-def test_delete_todo_not_found():
-    response = client.delete("/todos/999")
+async def test_delete_todo_not_found(client, test_user):
+    response = await client.delete(f"/todos/{MISSING_ID}")
     assert response.status_code == status.HTTP_404_NOT_FOUND

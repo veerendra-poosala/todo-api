@@ -1,16 +1,14 @@
-# Run the API + MySQL together:  docker compose up --build
+# Run the API + MongoDB together:  docker compose up --build
+# Only MongoDB (e.g. for running tests locally):  docker compose up -d mongo
 services:
-  db:
-    image: mysql:8.4
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-todoapplication}
+  mongo:
+    image: mongo:7
     ports:
-      - "3307:3306"   # host 3307 so it doesn't clash with a locally installed MySQL
+      - "27017:27017"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -19,13 +17,13 @@ services:
     build: .
     env_file: .env
     environment:
-      # Inside the compose network the database host is the service name "db"
-      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-root}@db:3306/${MYSQL_DATABASE:-todoapplication}
+      # Inside the compose network the database host is the service name "mongo"
+      MONGODB_URL: mongodb://mongo:27017
     ports:
       - "8000:8000"
     depends_on:
-      db:
+      mongo:
         condition: service_healthy
 
 volumes:
-  mysql_data:
+  mongo_data:

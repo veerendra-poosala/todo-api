@@ -1,3 +1,4 @@
+from beanie import PydanticObjectId
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.constants import (
@@ -18,12 +19,13 @@ class TodoRequest(BaseModel):
 
 
 class TodoResponse(BaseModel):
-    # from_attributes lets Pydantic read values from a SQLAlchemy object.
+    # from_attributes lets Pydantic read values from a Beanie document.
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    # ObjectIds are serialised to JSON as 24-character hex strings.
+    id: PydanticObjectId
     title: str
     description: str
     priority: int
     complete: bool
-    owner_id: int
+    owner_id: PydanticObjectId

@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "Todo API"
     APP_ENV: str = "development"
 
-    DATABASE_URL: str
+    MONGODB_URL: str
+    MONGODB_DB: str = "todoapplication"
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 20
 

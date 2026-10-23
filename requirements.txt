@@ -8,12 +8,9 @@ python-multipart
 pydantic-settings
 email-validator
 
-# --- Database (ORM, migrations, drivers) ---
-SQLAlchemy
-alembic
-PyMySQL
-cryptography
-psycopg2-binary
+# --- Database (ODM + driver) ---
+beanie>=2.0
+pymongo>=4.13
 
 # --- Security ---
 passlib
@@ -22,4 +19,5 @@ python-jose
 
 # --- Testing ---
 pytest
+pytest-asyncio
 httpx
