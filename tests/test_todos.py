@@ -1,7 +1,8 @@
 
 from fastapi import status
 
-from models import Todos
+from app.core.constants import TODO_NOT_FOUND
+from app.db.models import Todos
 
 from .utils import client, TestingSessionLocal, TEST_USER_ID
 
@@ -32,7 +33,7 @@ def test_read_one_authenticated(test_todo):
 def test_read_one_not_found():
     response = client.get("/todos/999")
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json() == {"detail": "Todo with id 999 not found"}
+    assert response.json() == {"detail": TODO_NOT_FOUND.format(todo_id=999)}
 
 
 def test_create_todo():

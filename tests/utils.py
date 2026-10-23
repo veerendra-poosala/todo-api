@@ -1,27 +1,24 @@
-
-from sqlalchemy.pool import StaticPool
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
+from sqlalchemy.pool import StaticPool
 
-from database import Base
-from main import app
-from models import Users
+from app.db.database import Base
+from app.db.models import Users
+from app.main import app
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"  # Use a separate test database
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool
-)
-
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base.metadata.create_all(bind=engine)  # Create tables in the test database
-
+TEST_DATABASE_URL = "sqlite:///./test.db"  # Separate throwaway database, never the real one
 TEST_USER_ID = 1
 TEST_USER_PASSWORD = "testpassword"
+
+engine = create_engine(
+    TEST_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base.metadata.create_all(bind=engine)
 
 
 def override_get_db():
@@ -42,4 +39,4 @@ def override_get_current_user():
         db.close()
 
 
-client = TestClient(app)  # Create a TestClient instance for testing the FastAPI app
+client = TestClient(app)

@@ -1,24 +1,29 @@
+import os
 
-import pytest
-from sqlalchemy import text
+# Settings are read when the app is imported, so point them at the test database first.
+# Forcing DATABASE_URL guarantees tests can never touch the real database from .env.
+os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
 
-from main import app
-from models import Users, Todos
-from routers import auth, todos, admin, users
-from routers.auth import bcrypt_context, get_current_user
+import pytest  # noqa: E402 - must come after the environment is configured
+from sqlalchemy import text  # noqa: E402
 
-from .utils import (
-    engine,
-    TestingSessionLocal,
-    override_get_db,
-    override_get_current_user,
+from app.core.constants import ROLE_ADMIN  # noqa: E402
+from app.core.security import hash_password  # noqa: E402
+from app.db.models import Todos, Users  # noqa: E402
+from app.dependencies import get_current_user, get_db  # noqa: E402
+from app.main import app  # noqa: E402
+
+from .utils import (  # noqa: E402
     TEST_USER_ID,
     TEST_USER_PASSWORD,
+    TestingSessionLocal,
+    engine,
+    override_get_current_user,
+    override_get_db,
 )
 
-# Every router defines its own get_db, so each one must be overridden.
-for router_module in (auth, todos, admin, users):
-    app.dependency_overrides[router_module.get_db] = override_get_db
+app.dependency_overrides[get_db] = override_get_db
 app.dependency_overrides[get_current_user] = override_get_current_user
 
 
@@ -38,8 +43,8 @@ def test_user():
         email="testuser@example.com",
         first_name="Test",
         last_name="User",
-        hashed_password=bcrypt_context.hash(TEST_USER_PASSWORD),
-        role="admin",
+        hashed_password=hash_password(TEST_USER_PASSWORD),
+        role=ROLE_ADMIN,
         phone_number="1111111111",
         is_active=True,
     )

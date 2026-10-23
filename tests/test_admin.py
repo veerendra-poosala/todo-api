@@ -1,9 +1,9 @@
-
 from fastapi import status
 
-from main import app
-from models import Todos, Users
-from routers.auth import get_current_user
+from app.core.constants import INSUFFICIENT_PERMISSIONS, ROLE_USER, TODO_NOT_FOUND
+from app.db.models import Todos, Users
+from app.dependencies import get_current_user
+from app.main import app
 
 from .utils import client, TestingSessionLocal
 
@@ -34,15 +34,17 @@ def test_delete_todo_authenticated(test_todo):
 def test_delete_todo_not_found():
     response = client.delete("/admin/todo/999")
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json() == {"detail": "Todo not found"}
+    assert response.json() == {"detail": TODO_NOT_FOUND.format(todo_id=999)}
 
 
-def test_non_admin_is_rejected(monkeypatch, test_todo):
+def test_non_admin_is_forbidden(monkeypatch, test_todo):
     # monkeypatch restores the original override after the test.
     monkeypatch.setitem(
         app.dependency_overrides,
         get_current_user,
-        lambda: Users(id=2, username="regular", role="user"),
+        lambda: Users(id=2, username="regular", role=ROLE_USER),
     )
-    assert client.get("/admin/todo").status_code == status.HTTP_401_UNAUTHORIZED
-    assert client.delete(f"/admin/todo/{test_todo.id}").status_code == status.HTTP_401_UNAUTHORIZED
+    response = client.get("/admin/todo")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": INSUFFICIENT_PERMISSIONS}
+    assert client.delete(f"/admin/todo/{test_todo.id}").status_code == status.HTTP_403_FORBIDDEN

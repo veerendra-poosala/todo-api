@@ -1,8 +1,9 @@
 
 from fastapi import status
 
-from models import Users
-from routers.auth import bcrypt_context
+from app.core.constants import INCORRECT_CURRENT_PASSWORD
+from app.core.security import verify_password
+from app.db.models import Users
 
 from .utils import client, TestingSessionLocal, TEST_USER_PASSWORD
 
@@ -24,6 +25,7 @@ def test_get_user_details(test_user):
     assert data["email"] == test_user.email
     assert data["role"] == test_user.role
     assert data["phone_number"] == test_user.phone_number
+    assert "hashed_password" not in data  # response_model must hide the hash
 
 
 def test_update_phone_number(test_user):
@@ -42,16 +44,16 @@ def test_change_password(test_user):
     response = client.put("/user/change-password", json=payload)
     assert response.status_code == status.HTTP_200_OK
     updated = get_user_from_db(test_user.id)
-    assert bcrypt_context.verify("newpassword123", updated.hashed_password)
+    assert verify_password("newpassword123", updated.hashed_password)
 
 
 def test_change_password_wrong_current_password(test_user):
     payload = {"current_password": "wrongpassword", "new_password": "newpassword123"}
     response = client.put("/user/change-password", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json() == {"detail": "Incorrect current password"}
+    assert response.json() == {"detail": INCORRECT_CURRENT_PASSWORD}
     unchanged = get_user_from_db(test_user.id)
-    assert bcrypt_context.verify(TEST_USER_PASSWORD, unchanged.hashed_password)
+    assert verify_password(TEST_USER_PASSWORD, unchanged.hashed_password)
 
 
 def test_change_password_same_as_current():

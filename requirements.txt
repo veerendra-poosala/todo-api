@@ -1,15 +1,25 @@
-bcrypt==4.0.1
-cryptography
+# --- Web framework & server ---
 fastapi
-psycopg2-binary
-PyMySQL
-python-jose
+uvicorn[standard]
+gunicorn
 python-multipart
+
+# --- Validation & settings ---
+pydantic-settings
+email-validator
+
+# --- Database (ORM, migrations, drivers) ---
 SQLAlchemy
-uvicorn
+alembic
+PyMySQL
+cryptography
+psycopg2-binary
+
+# --- Security ---
 passlib
+bcrypt==4.0.1
+python-jose
+
+# --- Testing ---
 pytest
 httpx
-pytest-asyncio
-aiofiles
-jinja2

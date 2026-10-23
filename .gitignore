@@ -47,3 +47,6 @@ coverage.xml
 *.swo
 .DS_Store
 Thumbs.db
+
+# Local SQLite databases (dev and test)
+*.db
