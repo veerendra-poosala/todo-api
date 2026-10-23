@@ -10,13 +10,16 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      # Ping over TCP (127.0.0.1), not the socket: during first-run initialisation MySQL
+      # starts a temporary socket-only server that would otherwise look "healthy" too early.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 5s
       timeout: 5s
       retries: 20
 
   api:
     build: .
+    restart: on-failure
     env_file: .env
     environment:
       # Inside the compose network the database host is the service name "db"
