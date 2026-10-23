@@ -17,6 +17,9 @@ app = FastAPI()
 # The engine specifies which database SQLAlchemy should use.
 models.Base.metadata.create_all(bind=engine)
 
+@app.get("/health", status_code=200, tags=["Health Check"])
+def health_check():
+    return {"status": "healthy"}
 
 app.include_router(auth.router)  # Include the auth router for authentication endpoints.
 app.include_router(todos.router)  # Include the todos router for todo endpoints.
