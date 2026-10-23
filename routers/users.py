@@ -41,6 +41,7 @@ class UserRequest(BaseModel):
     # first_name: str = Field(..., min_length=1, max_length=50)
     # last_name: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=6)
+    phone_number: str = Field(..., min_length=10, max_length=20)
     # role: str = Field(default="user", min_length=4, max_length=20)  # Default role is "user"
 
 
@@ -94,3 +95,15 @@ async def change_password(request: UserRequest, db: db_dependency, user: user_de
     user_data.hashed_password = bcrypt_context.hash(request.password)
     db.commit()
     return {"message": "Password changed successfully"}
+
+
+@router.put("/update-phone-number", status_code=status.HTTP_200_OK)
+async def update_phone_number(request: UserRequest, db: db_dependency, user: user_dependency):
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    user_data = db.query(Users).filter(Users.id == user.id).first()
+    if not user_data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user_data.phone_number = request.phone_number
+    db.commit()
+    return {"message": "Phone number updated successfully"}
