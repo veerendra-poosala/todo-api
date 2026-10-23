@@ -4,6 +4,21 @@ A small but complete REST API built with **FastAPI**, **SQLAlchemy**, **Alembic*
 
 It is a learning and interview reference. Every section explains *what* a piece does and *why* it is used, so a developer new to FastAPI can read the code and understand the reasoning behind it.
 
+> ### 📦 This branch: **SQLite**
+> Same API as `main` (MySQL), but the database is a single file, so no database server is needed.
+>
+> | What changed vs `main` | Why |
+> |---|---|
+> | `DATABASE_URL=sqlite:///./todosapp.db` in `.env.example` | SQLite URLs point at a file path |
+> | `connect_args={"check_same_thread": False}` (already automatic in `app/db/database.py`) | SQLite connections are tied to one thread by default; FastAPI uses a thread pool |
+> | `render_as_batch=True` in `alembic/env.py` | SQLite can't `ALTER`/`DROP` most columns, so Alembic copies the table instead |
+> | `docker-compose.yml` has no DB service; a volume holds `/code/data/todosapp.db` | The database is just a file inside the container's volume |
+> | No `PyMySQL` / `psycopg2` in `requirements.txt` | Python's built-in `sqlite3` module is the driver |
+>
+> **Quick start:** `pip install -r requirements.txt` → `cp .env.example .env` → `python -m scripts.migrate` → `uvicorn app.main:app --reload`
+>
+> **Limits:** one writer at a time and no user accounts or network access. Good for learning, prototypes, tests and small apps. Use PostgreSQL or MySQL for multi-user production.
+
 ---
 
 ## Table of contents

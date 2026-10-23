@@ -11,9 +11,7 @@ email-validator
 # --- Database (ORM, migrations, drivers) ---
 SQLAlchemy
 alembic
-PyMySQL
-cryptography
-psycopg2-binary
+# SQLite driver (sqlite3) ships with Python: nothing to install
 
 # --- Security ---
 passlib
