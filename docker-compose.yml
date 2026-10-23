@@ -1,16 +1,17 @@
-# Run the API + MySQL together:  docker compose up --build
+# Run the API + PostgreSQL together:  docker compose up --build
 services:
   db:
-    image: mysql:8.4
+    image: postgres:16
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-todoapplication}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-todoapplication}
     ports:
-      - "3307:3306"   # host 3307 so it doesn't clash with a locally installed MySQL
+      - "5433:5432"   # host 5433 so it doesn't clash with a locally installed PostgreSQL
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-todoapplication}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -20,7 +21,7 @@ services:
     env_file: .env
     environment:
       # Inside the compose network the database host is the service name "db"
-      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-root}@db:3306/${MYSQL_DATABASE:-todoapplication}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-todoapplication}
     ports:
       - "8000:8000"
     depends_on:
@@ -28,4 +29,4 @@ services:
         condition: service_healthy
 
 volumes:
-  mysql_data:
+  postgres_data:

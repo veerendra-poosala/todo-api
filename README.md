@@ -4,6 +4,20 @@ A small but complete REST API built with **FastAPI**, **SQLAlchemy**, **Alembic*
 
 It is a learning and interview reference. Every section explains *what* a piece does and *why* it is used, so a developer new to FastAPI can read the code and understand the reasoning behind it.
 
+> ### 📦 This branch: **PostgreSQL**
+> Same API as `main` (MySQL), running on PostgreSQL. Only configuration changed. Thanks to SQLAlchemy, the models, routers and tests are identical.
+>
+> | What changed vs `main` | Why |
+> |---|---|
+> | `DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/todoapplication` | `postgresql` dialect + `psycopg2` driver |
+> | `psycopg2-binary` instead of `PyMySQL` + `cryptography` | The driver SQLAlchemy uses to talk to PostgreSQL (`-binary` = prebuilt wheels, no compiler needed) |
+> | `docker-compose.yml` runs `postgres:16` with a `pg_isready` healthcheck on host port **5433** | Avoids clashing with a local PostgreSQL on 5432 |
+>
+> **Quick start (local Postgres):** `createdb todoapplication` → `pip install -r requirements.txt` → `cp .env.example .env` → `python -m scripts.migrate` → `uvicorn app.main:app --reload`
+> **Or with Docker:** `cp .env.example .env` → `docker compose up --build`
+>
+> **Why PostgreSQL?** Strict SQL standards, rich types (`JSONB`, arrays, `UUID`), powerful indexing and full-text search. It's a common default for new production apps. Prefer psycopg 3 (`postgresql+psycopg://`) or `asyncpg` for async SQLAlchemy.
+
 ---
 
 ## Table of contents
