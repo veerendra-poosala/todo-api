@@ -18,19 +18,19 @@ def todo_to_dict(todo):
 
 
 def test_read_all_authenticated(test_todo):
-    response = client.get("/")
+    response = client.get("/todos")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == [todo_to_dict(test_todo)]
 
 
 def test_read_one_authenticated(test_todo):
-    response = client.get(f"/todo/{test_todo.id}")
+    response = client.get(f"/todos/{test_todo.id}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == todo_to_dict(test_todo)
 
 
 def test_read_one_not_found():
-    response = client.get("/todo/999")
+    response = client.get("/todos/999")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Todo with id 999 not found"}
 
@@ -42,7 +42,7 @@ def test_create_todo():
         "priority": 2,
         "complete": False
     }
-    response = client.post("/todo", json=new_todo)
+    response = client.post("/todos", json=new_todo)
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert data["title"] == new_todo["title"]
@@ -63,7 +63,7 @@ def test_create_todo_invalid_payload():
         "description": "Valid description",
         "priority": 5,  # out of range (1-3)
     }
-    response = client.post("/todo", json=invalid_todo)
+    response = client.post("/todos", json=invalid_todo)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -74,7 +74,7 @@ def test_update_todo(test_todo):
         "priority": 3,
         "complete": True
     }
-    response = client.put(f"/todo/{test_todo.id}", json=updated_todo)
+    response = client.put(f"/todos/{test_todo.id}", json=updated_todo)
     assert response.status_code == status.HTTP_200_OK
 
     db = TestingSessionLocal()
@@ -93,12 +93,12 @@ def test_update_todo_not_found():
         "priority": 3,
         "complete": True
     }
-    response = client.put("/todo/999", json=updated_todo)
+    response = client.put("/todos/999", json=updated_todo)
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 def test_delete_todo(test_todo):
-    response = client.delete(f"/todo/{test_todo.id}")
+    response = client.delete(f"/todos/{test_todo.id}")
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
     db = TestingSessionLocal()
@@ -108,5 +108,5 @@ def test_delete_todo(test_todo):
 
 
 def test_delete_todo_not_found():
-    response = client.delete("/todo/999")
+    response = client.delete("/todos/999")
     assert response.status_code == status.HTTP_404_NOT_FOUND

@@ -28,7 +28,10 @@ from routers import auth  # Import the auth router for authentication endpoints.
 from .auth import get_current_user  # Import the get_current_user function for user authentication.
 
 # Create the FastAPI application instance.
-router = APIRouter()
+router = APIRouter(
+    prefix="/todos",
+    tags=["todos"]
+)
 
 
 
@@ -70,9 +73,9 @@ class TodoRequest(BaseModel):
     complete: bool = False
 
 
-# Register a GET endpoint at the root URL "/".
+# Register a GET endpoint at "/todos" that lists the user's todos.
 # Return HTTP 200 OK when the request succeeds.
-@router.get("/", status_code=status.HTTP_200_OK)
+@router.get("", status_code=status.HTTP_200_OK)
 def read_all(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(
@@ -83,9 +86,9 @@ def read_all(user: user_dependency, db: db_dependency):
     return db.query(Todos).filter(Todos.owner_id == user.id).all()  # Filter todos by the authenticated user's ID
 
 
-# Register a POST endpoint at "/todo".
+# Register a POST endpoint at "/todos".
 # Return HTTP 201 Created when a todo is successfully created.
-@router.post("/todo", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_todo(user: user_dependency, db: db_dependency, todo: TodoRequest):
 
     if user is None:
@@ -113,8 +116,8 @@ def create_todo(user: user_dependency, db: db_dependency, todo: TodoRequest):
 
 
 # Register a GET endpoint that accepts a todo ID in the URL.
-# Example: GET /todo/5
-@router.get("/todo/{todo_id}", status_code=status.HTTP_200_OK)
+# Example: GET /todos/5
+@router.get("/{todo_id}", status_code=status.HTTP_200_OK)
 def read_todo(todo_id: int,user: user_dependency, db: db_dependency):
 
     if user is None:
@@ -140,8 +143,8 @@ def read_todo(todo_id: int,user: user_dependency, db: db_dependency):
 
 
 # Register a PUT endpoint to update an existing todo.
-# Example: PUT /todo/5
-@router.put("/todo/{todo_id}", status_code=status.HTTP_200_OK)
+# Example: PUT /todos/5
+@router.put("/{todo_id}", status_code=status.HTTP_200_OK)
 def update_todo(todo_id: int, todo: TodoRequest, user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(
@@ -176,9 +179,9 @@ def update_todo(todo_id: int, todo: TodoRequest, user: user_dependency, db: db_d
 
 
 # Register a DELETE endpoint to remove a todo by ID.
-# Example: DELETE /todo/5
+# Example: DELETE /todos/5
 # Return HTTP 204 No Content when deletion succeeds.
-@router.delete("/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_todo(todo_id: int, user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(
