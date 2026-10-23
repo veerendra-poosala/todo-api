@@ -1,0 +1,34 @@
+# Run the API + MySQL together:  docker compose up --build
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-todoapplication}
+    ports:
+      - "3307:3306"   # host 3307 so it doesn't clash with a locally installed MySQL
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      # Ping over TCP (127.0.0.1), not the socket: during first-run initialisation MySQL
+      # starts a temporary socket-only server that would otherwise look "healthy" too early.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: .
+    restart: on-failure
+    env_file: .env
+    environment:
+      # Inside the compose network the database host is the service name "db"
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-root}@db:3306/${MYSQL_DATABASE:-todoapplication}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
