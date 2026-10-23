@@ -35,14 +35,13 @@ router = APIRouter(
 )
 
 
-class UserRequest(BaseModel):
-    # username: str = Field(..., min_length=3, max_length=50)
-    # email: str = Field(..., min_length=5, max_length=100)
-    # first_name: str = Field(..., min_length=1, max_length=50)
-    # last_name: str = Field(..., min_length=1, max_length=50)
-    password: str = Field(..., min_length=6)
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6)
+
+
+class PhoneNumberRequest(BaseModel):
     phone_number: str = Field(..., min_length=10, max_length=20)
-    # role: str = Field(default="user", min_length=4, max_length=20)  # Default role is "user"
 
 
 
@@ -66,7 +65,7 @@ def get_db():
 # Session specifies the expected type of the database session.
 # Depends(get_db) tells FastAPI to call get_db and inject its yielded session.
 db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[dict, Depends(get_current_user)]  # Dependency for authenticated user
+user_dependency = Annotated[Users, Depends(get_current_user)]  # Dependency for authenticated user
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -82,23 +81,23 @@ async def get_user(db: db_dependency, user: user_dependency):
 
 
 @router.put("/change-password", status_code=status.HTTP_200_OK)
-async def change_password(request: UserRequest, db: db_dependency, user: user_dependency):
+async def change_password(request: ChangePasswordRequest, db: db_dependency, user: user_dependency):
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
     user_data = db.query(Users).filter(Users.id == user.id).first()
     if not user_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    existing_password = bcrypt_context.verify(request.password, user_data.hashed_password)
-    # print(f"Existing password verification result: {existing_password}")
-    if existing_password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password")
-    user_data.hashed_password = bcrypt_context.hash(request.password)
+    if not bcrypt_context.verify(request.current_password, user_data.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect current password")
+    if request.new_password == request.current_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must differ from current password")
+    user_data.hashed_password = bcrypt_context.hash(request.new_password)
     db.commit()
     return {"message": "Password changed successfully"}
 
 
 @router.put("/update-phone-number", status_code=status.HTTP_200_OK)
-async def update_phone_number(request: UserRequest, db: db_dependency, user: user_dependency):
+async def update_phone_number(request: PhoneNumberRequest,db: db_dependency, user: user_dependency):
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
     user_data = db.query(Users).filter(Users.id == user.id).first()

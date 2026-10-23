@@ -52,7 +52,7 @@ def get_db():
 # Session specifies the expected type of the database session.
 # Depends(get_db) tells FastAPI to call get_db and inject its yielded session.
 db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[dict, Depends(get_current_user)]  # Dependency for authenticated user
+user_dependency = Annotated[models.Users, Depends(get_current_user)]  # Dependency for authenticated user
 
 # Define the expected structure and validation rules for todo request data.
 class TodoRequest(BaseModel):

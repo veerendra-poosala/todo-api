@@ -11,7 +11,7 @@ from typing import Annotated
 from sqlalchemy.orm import Session
 
 # Import the Todos model class representing the todos database table.
-from models import Todos
+from models import Todos, Users
 
 # Import the database engine and session factory from database.py.
 from database import SessionLocal
@@ -46,7 +46,7 @@ def get_db():
 # Session specifies the expected type of the database session.
 # Depends(get_db) tells FastAPI to call get_db and inject its yielded session.
 db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[dict, Depends(get_current_user)]  # Dependency for authenticated user
+user_dependency = Annotated[Users, Depends(get_current_user)]  # Dependency for authenticated user
 
 @router.get("/todo", status_code=status.HTTP_200_OK)
 async def get_todos(db: db_dependency, user: user_dependency):
