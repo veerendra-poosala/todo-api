@@ -75,3 +75,51 @@ def test_read_one_authenticated(test_todo):
         "complete": test_todo.complete,
         "owner_id": test_todo.owner_id
     }
+
+
+def test_create_todo(test_todo):
+    new_todo = {
+        "title": "New Test Todo",
+        "description": "This is a new test todo",
+        "priority": 2,
+        "complete": False
+    }
+    response = client.post("/todo/", json=new_todo)
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    assert data["title"] == new_todo["title"]
+    assert data["description"] == new_todo["description"]
+    assert data["priority"] == new_todo["priority"]
+    assert data["complete"] == new_todo["complete"]
+    assert data["owner_id"] == 1  # The mocked user ID
+
+    db = TestingSessionLocal()
+    model_todo = db.query(Todos).filter(Todos.id == data["id"]).first()
+    assert model_todo is not None
+
+
+
+def test_update_todo(test_todo):
+    updated_todo = {
+        "title": "Updated Test Todo",
+        "description": "This is an updated test todo",
+        "priority": 3,
+        "complete": True
+    }
+    response = client.put(f"/todo/{test_todo.id}", json=updated_todo)
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    db = TestingSessionLocal()
+    model_todo = db.query(Todos).filter(Todos.id == test_todo.id).first()
+    assert model_todo.title == updated_todo["title"]
+    assert model_todo.description == updated_todo["description"]
+    assert model_todo.priority == updated_todo["priority"]
+    assert model_todo.complete == updated_todo["complete"]
+
+
+def test_delete_todo(test_todo):
+    response = client.delete(f"/todo/{test_todo.id}")
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    db = TestingSessionLocal()
+    model_todo = db.query(Todos).filter(Todos.id == test_todo.id).first()
+    assert model_todo is None  # The todo should be deleted from the database
