@@ -4,6 +4,24 @@ A small but complete REST API built with **FastAPI**, **SQLAlchemy**, **Alembic*
 
 It is a learning and interview reference. Every section explains *what* a piece does and *why* it is used, so a developer new to FastAPI can read the code and understand the reasoning behind it.
 
+> ### 📦 This branch: **Microsoft SQL Server (MSSQL)**
+> Same API as `main` (MySQL), running on SQL Server. Only configuration changed. Thanks to SQLAlchemy, the models, routers and tests are identical.
+>
+> | What changed vs `main` | Why |
+> |---|---|
+> | `DATABASE_URL=mssql+pyodbc://dev_admin:<PASSWORD>@localhost:1433/todoapplication?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes` | `mssql` dialect + `pyodbc` driver; the query string picks the ODBC driver and TLS options |
+> | `pyodbc` instead of `PyMySQL` + `cryptography` | SQLAlchemy's default, best-supported SQL Server driver. It talks to the OS-level **ODBC Driver 18 for SQL Server** |
+> | `Encrypt=yes&TrustServerCertificate=yes` | Driver 18 encrypts by default (SSMS "Encrypt: Mandatory"). A local server uses a self-signed cert, so we trust it, **dev only**. In production, use a real certificate and drop `TrustServerCertificate` |
+> | `Dockerfile` installs `msodbcsql18` + `unixodbc` | pyodbc is only a bridge; the actual driver must be installed in the image via Microsoft's apt repo |
+> | `docker-compose.yml` runs `mssql/server:2022-latest` on host port **1434**, plus a one-shot `db-init` service | The SQL Server image can't auto-create a database (no `MYSQL_DATABASE` equivalent), so `db-init` runs `CREATE DATABASE` before the API migrates |
+>
+> **Quick start (local SQL Server):** install [ODBC Driver 18](https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server) → `CREATE DATABASE todoapplication;` in SSMS → `pip install -r requirements.txt` → `cp .env.example .env` (set user/password) → `python -m scripts.migrate` → `uvicorn app.main:app --reload`
+> **Or with Docker:** `cp .env.example .env` → `docker compose up --build`
+>
+> **Why SQL Server?** It's the standard in enterprise and .NET shops and maps directly to Azure SQL. It offers strong tooling (SSMS, Agent jobs, profiler), Windows/AD authentication and columnstore indexes. For async SQLAlchemy, use `mssql+aioodbc://`.
+>
+> **Gotcha:** an unbounded `String()` becomes `VARCHAR(max)`, which **can't be indexed or made unique**. That's why the models always give string columns a length.
+
 ---
 
 ## Table of contents
