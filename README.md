@@ -18,6 +18,8 @@ It is a learning and interview reference. Every section explains *what* a piece 
 > **Quick start (local SQL Server):** install [ODBC Driver 18](https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server) → `CREATE DATABASE todoapplication;` in SSMS → `pip install -r requirements.txt` → `cp .env.example .env` (set user/password) → `python -m scripts.migrate` → `uvicorn app.main:app --reload`
 > **Or with Docker:** `cp .env.example .env` → `docker compose up --build`
 >
+> 📘 **Full walkthrough** (SQL Server prep → `.env` → migrations → run → tests → Docker → deployment → troubleshooting): [docs/MSSQL_GUIDE.md](docs/MSSQL_GUIDE.md)
+>
 > **Why SQL Server?** It's the standard in enterprise and .NET shops and maps directly to Azure SQL. It offers strong tooling (SSMS, Agent jobs, profiler), Windows/AD authentication and columnstore indexes. For async SQLAlchemy, use `mssql+aioodbc://`.
 >
 > **Gotcha:** an unbounded `String()` becomes `VARCHAR(max)`, which **can't be indexed or made unique**. That's why the models always give string columns a length.

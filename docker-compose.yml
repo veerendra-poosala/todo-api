@@ -4,7 +4,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}
     ports:
       - "1434:1433"   # host 1434 so it doesn't clash with a locally installed SQL Server
     volumes:
@@ -22,7 +22,7 @@ services:
   db-init:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}
       MSSQL_DATABASE: ${MSSQL_DATABASE:-todoapplication}
     entrypoint:
       - /bin/sh
@@ -40,7 +40,7 @@ services:
     env_file: .env
     environment:
       # Inside the compose network the database host is the service name "db"
-      DATABASE_URL: mssql+pyodbc://sa:${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}@db:1433/${MSSQL_DATABASE:-todoapplication}?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+      DATABASE_URL: mssql+pyodbc://sa:${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}@db:1433/${MSSQL_DATABASE:-todoapplication}?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
     ports:
       - "8000:8000"
     depends_on:
