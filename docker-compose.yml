@@ -1,21 +1,38 @@
-# Run the API + MySQL together:  docker compose up --build
+# Run the API + SQL Server together:  docker compose up --build
 services:
   db:
-    image: mysql:8.4
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-todoapplication}
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}
     ports:
-      - "3307:3306"   # host 3307 so it doesn't clash with a locally installed MySQL
+      - "1434:1433"   # host 1434 so it doesn't clash with a locally installed SQL Server
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mssql_data:/var/opt/mssql
     healthcheck:
-      # Ping over TCP (127.0.0.1), not the socket: during first-run initialisation MySQL
-      # starts a temporary socket-only server that would otherwise look "healthy" too early.
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      # -C trusts the container's self-signed certificate (sqlcmd 18 encrypts by default)
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 30
+      start_period: 15s
+
+  # Unlike the MySQL/Postgres images, SQL Server has no "create this database on first start"
+  # variable, so a one-shot container creates it before the API runs its migrations.
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}
+      MSSQL_DATABASE: ${MSSQL_DATABASE:-todoapplication}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        /opt/mssql-tools18/bin/sqlcmd -C -S db -U sa -P "$$MSSQL_SA_PASSWORD"
+        -Q "IF DB_ID('$$MSSQL_DATABASE') IS NULL CREATE DATABASE [$$MSSQL_DATABASE]"
+    depends_on:
+      db:
+        condition: service_healthy
 
   api:
     build: .
@@ -23,12 +40,12 @@ services:
     env_file: .env
     environment:
       # Inside the compose network the database host is the service name "db"
-      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-root}@db:3306/${MYSQL_DATABASE:-todoapplication}
+      DATABASE_URL: mssql+pyodbc://sa:${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}@db:1433/${MSSQL_DATABASE:-todoapplication}?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
     ports:
       - "8000:8000"
     depends_on:
-      db:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
 
 volumes:
-  mysql_data:
+  mssql_data:

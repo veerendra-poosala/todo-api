@@ -11,9 +11,7 @@ email-validator
 # --- Database (ORM, migrations, drivers) ---
 SQLAlchemy
 alembic
-PyMySQL
-cryptography
-psycopg2-binary
+pyodbc
 
 # --- Security ---
 passlib
