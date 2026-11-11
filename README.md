@@ -214,6 +214,22 @@ Open **http://127.0.0.1:8000/docs** for the interactive Swagger UI, or `/redoc` 
 
 **Try it in Swagger:** `POST /auth/user` to sign up → click **Authorize** and log in → call any `/todos` endpoint.
 
+### Seeding test data
+
+**Seeding** fills the database with a known set of sample rows so you can test the APIs right away. Migrations create the *tables*; seeding inserts the *data*. The seed script is idempotent, so re-running it won't create duplicates, and it refuses to run when `APP_ENV=production`.
+
+```bash
+python -m scripts.seed           # after `python -m scripts.migrate`
+python -m scripts.seed --reset   # recreate the sample todos (e.g. after testing DELETE)
+docker compose exec api python -m scripts.seed   # when running with Docker
+```
+
+| Username | Password | Role | Todos | Good for testing |
+|---|---|---|---|---|
+| `admin` | `password123` | admin | 1 | `/admin/todo` (sees and deletes everyone's todos) |
+| `alice` | `password123` | user | 7 | `/todos` CRUD, `/user` endpoints |
+| `bob` | `password123` | user | 4 | Ownership: alice's todo IDs return 404 for bob |
+
 ---
 
 ## 6. API endpoints
